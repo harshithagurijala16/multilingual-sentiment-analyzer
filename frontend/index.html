@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IndicSentiment - Multilingual Sentiment & Feedback Analytics</title>
+  <meta name="description" content="AI-Powered Sentiment & Feedback Analytics for Indian Languages using XLM-RoBERTa & Indic Transliteration.">
+  
+  <!-- Fonts & CDN Tailwind -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              800: '#3730a3',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased selection:bg-brand-500 selection:text-white transition-colors duration-200">
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- AUTH VIEW (When not logged in) -->
+  <div id="authView" class="min-h-full flex items-center justify-center p-4 bg-gradient-to-br from-indigo-50/50 via-slate-50 to-purple-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <div class="w-full max-w-md">
+      <!-- Logo Branding -->
+      <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-brand-600 text-white shadow-lg shadow-brand-500/30 mb-3 text-2xl font-bold">
+          🇮🇳
+        </div>
+        <h1 class="text-3xl font-extrabold tracking-tight brand-font">IndicSentiment</h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Multilingual Indian Language Feedback Analytics</p>
+      </div>
+
+      <!-- Auth Card -->
+      <div class="bg-white dark:bg-slate-900 rounded-3xl p-8 shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-200/80 dark:border-slate-800">
+        <!-- Auth Tabs -->
+        <div class="flex border-b border-slate-200 dark:border-slate-800 mb-6">
+          <button id="tabLoginBtn" class="flex-1 pb-3 text-sm font-semibold text-brand-600 border-b-2 border-brand-600 transition-colors">Sign In</button>
+          <button id="tabRegisterBtn" class="flex-1 pb-3 text-sm font-semibold text-slate-400 border-b-2 border-transparent hover:text-slate-600 dark:hover:text-slate-300 transition-colors">Register</button>
+        </div>
+
+        <!-- Login Form -->
+        <form id="loginForm" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">Email Address</label>
+            <input type="email" id="loginEmail" required class="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="demo@example.com" value="demo@example.com">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">Password</label>
+            <input type="password" id="loginPassword" required class="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="••••••••" value="demo1234">
+          </div>
+          <button type="submit" class="w-full py-3 px-4 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-medium text-sm shadow-md shadow-brand-500/20 transition-all flex items-center justify-center gap-2">
+            <span>Sign In to Dashboard</span>
+          </button>
+
+          <!-- One-click Demo Button -->
+          <div class="pt-2">
+            <button type="button" id="quickDemoBtn" class="w-full py-2.5 px-3 rounded-xl border border-indigo-200 dark:border-indigo-900 bg-indigo-50/50 dark:bg-indigo-950/40 hover:bg-indigo-100/60 dark:hover:bg-indigo-900/60 text-brand-600 dark:text-indigo-400 text-xs font-semibold transition-all flex items-center justify-center gap-1.5">
+              <span>⚡ One-Click Demo Access</span>
+            </button>
+          </div>
+        </form>
+
+        <!-- Register Form (Hidden initially) -->
+        <form id="registerForm" class="space-y-4 hidden">
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">Organization / Company</label>
+            <input type="text" id="regOrg" required class="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="Acme Retail India">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">Email Address</label>
+            <input type="email" id="regEmail" required class="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="analyst@example.com">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">Password</label>
+            <input type="password" id="regPassword" required class="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="At least 6 characters">
+          </div>
+          <button type="submit" class="w-full py-3 px-4 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-medium text-sm shadow-md shadow-brand-500/20 transition-all flex items-center justify-center gap-2">
+            <span>Create Free Account</span>
+          </button>
+        </form>
+      </div>
+
+      <p class="text-center text-xs text-slate-400 dark:text-slate-500 mt-6">
+        Supports Telugu, Tamil, Kannada, Hindi, Malayalam, Bengali, Marathi, Gujarati & English
+      </p>
+    </div>
+  </div>
+
+  <!-- MAIN APP LAYOUT (When authenticated) -->
+  <div id="mainApp" class="hidden min-h-full flex flex-col md:flex-row">
+    
+    <!-- SIDEBAR NAVIGATION -->
+    <aside class="w-full md:w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col flex-shrink-0">
+      <!-- App Header -->
+      <div class="p-6 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 text-white flex items-center justify-center text-xl shadow-md shadow-brand-500/20">
+            🇮🇳
+          </div>
+          <div>
+            <h2 class="text-base font-bold brand-font leading-none">IndicSentiment</h2>
+            <span class="text-[10px] font-semibold tracking-wider uppercase text-brand-600 dark:text-brand-400">XLM-RoBERTa</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nav Links -->
+      <nav class="flex-1 px-3 py-6 space-y-1.5 overflow-y-auto">
+        <button data-page="dashboard" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors text-brand-600 bg-brand-50 dark:bg-brand-950/50 dark:text-brand-400">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          <span>Dashboard</span>
+        </button>
+
+        <button data-page="analyze" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+          <span>Live Analyzer</span>
+        </button>
+
+        <button data-page="bulk" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+          <span>Bulk Upload</span>
+        </button>
+
+        <button data-page="reviews" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+          <span>Reviews Explorer</span>
+        </button>
+
+        <button data-page="insights" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          <span>Deep Insights</span>
+        </button>
+
+        <button data-page="reports" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          <span>Reports & Export</span>
+        </button>
+      </nav>
+
+      <!-- Sidebar Footer (User info & Theme toggle) -->
+      <div class="p-4 border-t border-slate-200/80 dark:border-slate-800 space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Model: XLM-RoBERTa</span>
+          </div>
+          <button id="themeToggleBtn" class="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" title="Toggle Dark/Light Mode">
+            <span id="themeIcon">🌙</span>
+          </button>
+        </div>
+
+        <div class="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-2.5 flex items-center justify-between">
+          <div class="truncate mr-2">
+            <div id="userOrgDisplay" class="text-xs font-bold truncate">Demo User</div>
+            <div id="userEmailDisplay" class="text-[11px] text-slate-500 dark:text-slate-400 truncate">demo@example.com</div>
+          </div>
+          <button id="logoutBtn" class="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-white dark:hover:bg-slate-700 transition-colors" title="Logout">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT VIEW AREA -->
+    <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+      
+      <!-- Top Header -->
+      <header class="h-16 border-b border-slate-200 dark:border-slate-800 px-6 flex items-center justify-between bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-20">
+        <div class="flex items-center gap-3">
+          <h2 id="pageTitle" class="text-lg font-bold brand-font">Analytics Dashboard</h2>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400">
+            9 Languages Active
+          </span>
+          <button id="quickAnalyzeNavBtn" class="px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5">
+            <span>+ Analyze Review</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- VIEW 1: DASHBOARD -->
+      <section id="pageDashboard" class="p-6 space-y-6">
+        <!-- Filter Bar -->
+        <div class="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div class="flex flex-wrap items-center gap-3">
+            <div class="flex items-center gap-2">
+              <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Product:</label>
+              <select id="dashProductFilter" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-medium focus:ring-1 focus:ring-brand-500">
+                <option value="">All Products</option>
+              </select>
+            </div>
+            <div class="flex items-center gap-2">
+              <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Language:</label>
+              <select id="dashLanguageFilter" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-medium focus:ring-1 focus:ring-brand-500">
+                <option value="all">All Languages</option>
+                <option value="Telugu">Telugu</option>
+                <option value="Tamil">Tamil</option>
+                <option value="Kannada">Kannada</option>
+                <option value="Hindi">Hindi</option>
+                <option value="Malayalam">Malayalam</option>
+                <option value="Bengali">Bengali</option>
+                <option value="Marathi">Marathi</option>
+                <option value="Gujarati">Gujarati</option>
+                <option value="English">English</option>
+              </select>
+            </div>
+          </div>
+          <button id="refreshDashBtn" class="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold flex items-center gap-1.5 transition-colors">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            <span>Refresh</span>
+          </button>
+        </div>
+
+        <!-- KPI Metrics Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <!-- Total Reviews -->
+          <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm hover-card">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Reviews</span>
+              <span class="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950 text-brand-600 text-xs">💬</span>
+            </div>
+            <div id="kpiTotalReviews" class="text-3xl font-extrabold brand-font">0</div>
+            <div id="kpiLanguagesCount" class="text-[11px] text-slate-500 mt-1">Across 0 languages</div>
+          </div>
+
+          <!-- Positive % -->
+          <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm hover-card">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Positive</span>
+              <span class="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950 text-emerald-600 text-xs">👍</span>
+            </div>
+            <div id="kpiPosPct" class="text-3xl font-extrabold brand-font text-emerald-600 dark:text-emerald-400">0%</div>
+            <div id="kpiPosCount" class="text-[11px] text-slate-500 mt-1">0 reviews</div>
+          </div>
+
+          <!-- Negative % -->
+          <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm hover-card">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400">Negative</span>
+              <span class="p-2 rounded-lg bg-rose-50 dark:bg-rose-950 text-rose-600 text-xs">👎</span>
+            </div>
+            <div id="kpiNegPct" class="text-3xl font-extrabold brand-font text-rose-600 dark:text-rose-400">0%</div>
+            <div id="kpiNegCount" class="text-[11px] text-slate-500 mt-1">0 reviews</div>
+          </div>
+
+          <!-- Neutral % -->
+          <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm hover-card">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Neutral</span>
+              <span class="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 text-xs">⚖️</span>
+            </div>
+            <div id="kpiNeuPct" class="text-3xl font-extrabold brand-font text-slate-600 dark:text-slate-400">0%</div>
+            <div id="kpiNeuCount" class="text-[11px] text-slate-500 mt-1">0 reviews</div>
+          </div>
+
+          <!-- Net Sentiment (NPS Style) -->
+          <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm hover-card">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Net Sentiment</span>
+              <span class="p-2 rounded-lg bg-brand-50 dark:bg-brand-950 text-brand-600 text-xs">🎯</span>
+            </div>
+            <div id="kpiNpsScore" class="text-3xl font-extrabold brand-font text-indigo-600 dark:text-indigo-400">+0.0</div>
+            <div id="kpiAvgConfidence" class="text-[11px] text-slate-500 mt-1">Avg Confidence: 0%</div>
+          </div>
+        </div>
+
+        <!-- Charts Row 1: Donut & Stacked Bar -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Donut Distribution -->
+          <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+            <h3 class="text-sm font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-4">Overall Sentiment Share</h3>
+            <div class="relative h-64 flex items-center justify-center">
+              <canvas id="sentimentDonutChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Stacked Bar by Language -->
+          <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm lg:col-span-2">
+            <h3 class="text-sm font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-4">Sentiment by Indian Language</h3>
+            <div class="relative h-64">
+              <canvas id="languageStackedChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Row 2: Trend Line & Aspects -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Trend Over Time -->
+          <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-sm font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Sentiment Trend Over Time</h3>
+              <select id="trendIntervalSelect" class="px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs">
+                <option value="daily">Daily</option>
+                <option value="weekly" selected>Weekly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            </div>
+            <div class="relative h-64">
+              <canvas id="trendLineChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Aspects Sentiment Chart -->
+          <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+            <h3 class="text-sm font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-4">Key Aspects Sentiment Matrix</h3>
+            <div class="relative h-64">
+              <canvas id="aspectsBarChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top Products Ranking Table -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+          <h3 class="text-sm font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-4">Product Sentiment Rankings</h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 dark:bg-slate-800/60 uppercase font-semibold text-slate-500">
+                <tr>
+                  <th class="py-3 px-4 rounded-l-xl">Product</th>
+                  <th class="py-3 px-4">Category</th>
+                  <th class="py-3 px-4">Total Reviews</th>
+                  <th class="py-3 px-4">Positive %</th>
+                  <th class="py-3 px-4">Net Score</th>
+                  <th class="py-3 px-4 rounded-r-xl">Sentiment Distribution</th>
+                </tr>
+              </thead>
+              <tbody id="topProductsTableBody" class="divide-y divide-slate-100 dark:divide-slate-800">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 2: LIVE ANALYZER -->
+      <section id="pageAnalyze" class="p-6 space-y-6 hidden">
+        <div class="max-w-4xl mx-auto space-y-6">
+          <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <div>
+              <h3 class="text-base font-bold brand-font">Single Review Sentiment Analyzer</h3>
+              <p class="text-xs text-slate-500 mt-0.5">Type or paste customer feedback in any Indian language, native script, or Romanized/code-mixed text.</p>
+            </div>
+
+            <!-- Example Presets -->
+            <div>
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-2">Try Clickable Presets:</span>
+              <div class="flex flex-wrap gap-2" id="presetButtonsContainer">
+                <!-- Preset buttons injected via JS -->
+              </div>
+            </div>
+
+            <!-- Input Area -->
+            <div>
+              <textarea id="analyzeInputText" rows="4" class="w-full p-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none" placeholder="Enter customer review here... (e.g. 'Camera quality chala bagundi, battery backup super')"></textarea>
+              <div class="flex items-center justify-between text-xs text-slate-400 mt-1">
+                <span id="charCount">0 characters</span>
+                <span class="text-[11px]">Automatic Language, Script & Transliteration Detection</span>
+              </div>
+            </div>
+
+            <!-- Options & Action -->
+            <div class="flex flex-wrap items-center justify-between gap-4 pt-2">
+              <div class="flex items-center gap-4">
+                <label class="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                  <input type="checkbox" id="analyzeSaveCheckbox" class="rounded text-brand-600 focus:ring-brand-500">
+                  <span>Save result to database</span>
+                </label>
+                <select id="analyzeProductSelect" class="px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs hidden">
+                  <option value="">Select Product...</option>
+                </select>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <button type="button" id="analyzeClearBtn" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800">Clear</button>
+                <button type="button" id="analyzeSubmitBtn" class="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold shadow-md shadow-brand-500/20 flex items-center gap-2">
+                  <svg id="analyzeSpinner" class="w-3.5 h-3.5 animate-spin hidden" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+                  <span>Run Live Analysis</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Analysis Results Panel (Hidden until analyzed) -->
+          <div id="analyzeResultPanel" class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6 hidden">
+            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+              <h4 class="text-sm font-bold uppercase tracking-wider text-slate-500">Analysis Breakdown</h4>
+              <div id="resSentimentBadge" class="px-3 py-1 rounded-full text-xs font-bold uppercase">Positive</div>
+            </div>
+
+            <!-- Detection Summary Pills -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div class="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                <div class="text-[10px] uppercase font-semibold text-slate-400">Language</div>
+                <div id="resLanguage" class="text-sm font-bold text-slate-800 dark:text-slate-100 mt-0.5">Telugu</div>
+              </div>
+              <div class="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                <div class="text-[10px] uppercase font-semibold text-slate-400">Script</div>
+                <div id="resScript" class="text-sm font-bold text-slate-800 dark:text-slate-100 mt-0.5">Latin (Romanized)</div>
+              </div>
+              <div class="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                <div class="text-[10px] uppercase font-semibold text-slate-400">Code-Mixed</div>
+                <div id="resCodeMixed" class="text-sm font-bold text-slate-800 dark:text-slate-100 mt-0.5">No</div>
+              </div>
+              <div class="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                <div class="text-[10px] uppercase font-semibold text-slate-400">Model Confidence</div>
+                <div id="resConfidence" class="text-sm font-bold text-slate-800 dark:text-slate-100 mt-0.5">92.4%</div>
+              </div>
+            </div>
+
+            <!-- Transliteration Box (Shows if Romanized) -->
+            <div id="resTransliterationBox" class="bg-indigo-50/60 dark:bg-indigo-950/40 p-4 rounded-xl border border-indigo-100 dark:border-indigo-900/60">
+              <div class="text-xs font-semibold text-indigo-700 dark:text-indigo-300 uppercase tracking-wider mb-1 flex items-center justify-between">
+                <span>Indic-Transliterated Native Script</span>
+                <span class="text-[10px] font-normal lowercase">ITRANS / Harvard-Kyoto</span>
+              </div>
+              <p id="resTransliteratedText" class="text-base text-slate-900 dark:text-slate-100 font-medium"></p>
+            </div>
+
+            <!-- Probabilities Breakdown Bars -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between text-xs font-semibold text-slate-600 dark:text-slate-300">
+                <span>Class Probability Distribution</span>
+              </div>
+              <div class="space-y-2 text-xs">
+                <div>
+                  <div class="flex justify-between mb-1">
+                    <span class="text-emerald-600 font-medium">Positive</span>
+                    <span id="resProbPos" class="font-bold">0%</span>
+                  </div>
+                  <div class="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                    <div id="resBarPos" class="h-full bg-emerald-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="flex justify-between mb-1">
+                    <span class="text-rose-600 font-medium">Negative</span>
+                    <span id="resProbNeg" class="font-bold">0%</span>
+                  </div>
+                  <div class="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                    <div id="resBarNeg" class="h-full bg-rose-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="flex justify-between mb-1">
+                    <span class="text-slate-500 font-medium">Neutral</span>
+                    <span id="resProbNeu" class="font-bold">0%</span>
+                  </div>
+                  <div class="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                    <div id="resBarNeu" class="h-full bg-slate-400 rounded-full transition-all duration-500" style="width: 0%"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Detected Aspects -->
+            <div>
+              <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Detected Feedback Aspects</div>
+              <div id="resAspectsTags" class="flex flex-wrap gap-2">
+                <!-- Injected aspects pills -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 3: BULK UPLOAD -->
+      <section id="pageBulk" class="p-6 space-y-6 hidden">
+        <div class="max-w-3xl mx-auto space-y-6">
+          <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="text-base font-bold brand-font">Bulk Reviews CSV Upload</h3>
+                <p class="text-xs text-slate-500 mt-0.5">Upload multiple customer reviews in Indian languages for automated batched inference.</p>
+              </div>
+              <a href="/api/reviews/template" download class="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold flex items-center gap-1.5 transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                <span>Download Sample CSV</span>
+              </a>
+            </div>
+
+            <!-- Drag & Drop Zone -->
+            <div id="dropZone" class="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-500 dark:hover:border-brand-500 rounded-2xl p-8 text-center cursor-pointer transition-colors">
+              <input type="file" id="bulkFileInput" accept=".csv" class="hidden">
+              <div class="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-brand-600 flex items-center justify-center mx-auto mb-3 text-xl">
+                📂
+              </div>
+              <p class="text-sm font-semibold text-slate-700 dark:text-slate-200">Drag and drop your reviews CSV here, or <span class="text-brand-600 underline">browse</span></p>
+              <p class="text-xs text-slate-400 mt-1">Columns: <code class="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">review</code> (required), <code class="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">product</code>, <code class="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">date</code>, <code class="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">source</code></p>
+            </div>
+
+            <!-- File Selected info -->
+            <div id="fileInfoBox" class="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl flex items-center justify-between text-xs hidden">
+              <div class="flex items-center gap-2 truncate">
+                <span class="text-base">📄</span>
+                <span id="fileName" class="font-semibold truncate">data.csv</span>
+                <span id="fileSize" class="text-slate-400">(0 KB)</span>
+              </div>
+              <button id="removeFileBtn" class="text-slate-400 hover:text-rose-500">✕</button>
+            </div>
+
+            <!-- Progress Bar -->
+            <div id="bulkProgressContainer" class="space-y-1.5 hidden">
+              <div class="flex justify-between text-xs font-semibold">
+                <span id="bulkProgressText">Processing batches...</span>
+                <span id="bulkProgressPct">0%</span>
+              </div>
+              <div class="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                <div id="bulkProgressBar" class="h-full bg-brand-600 rounded-full transition-all duration-300" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <button type="button" id="bulkSubmitBtn" disabled class="w-full py-3 px-4 rounded-xl bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-medium text-xs shadow-md shadow-brand-500/20 transition-all flex items-center justify-center gap-2">
+              <span>Process & Ingest Reviews</span>
+            </button>
+          </div>
+
+          <!-- Bulk Upload Results Banner -->
+          <div id="bulkResultsBanner" class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 hidden">
+            <h4 class="text-sm font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+              <span>✓ Ingestion Complete</span>
+            </h4>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+              <div class="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl">
+                <div class="text-[10px] uppercase font-semibold text-slate-400">Total Rows</div>
+                <div id="bResTotal" class="text-lg font-extrabold brand-font mt-0.5">0</div>
+              </div>
+              <div class="bg-emerald-50 dark:bg-emerald-950/40 p-3 rounded-xl">
+                <div class="text-[10px] uppercase font-semibold text-emerald-600">Saved</div>
+                <div id="bResSaved" class="text-lg font-extrabold brand-font text-emerald-600 mt-0.5">0</div>
+              </div>
+              <div class="bg-rose-50 dark:bg-rose-950/40 p-3 rounded-xl">
+                <div class="text-[10px] uppercase font-semibold text-rose-600">Skipped</div>
+                <div id="bResSkipped" class="text-lg font-extrabold brand-font text-rose-600 mt-0.5">0</div>
+              </div>
+              <div class="bg-indigo-50 dark:bg-indigo-950/40 p-3 rounded-xl">
+                <div class="text-[10px] uppercase font-semibold text-brand-600">Avg Confidence</div>
+                <div id="bResAvgConf" class="text-lg font-extrabold brand-font text-brand-600 mt-0.5">0%</div>
+              </div>
+            </div>
+
+            <div id="skippedRowsContainer" class="hidden space-y-2">
+              <div class="text-xs font-semibold text-rose-600">Skipped Rows Details:</div>
+              <div id="skippedRowsList" class="max-h-36 overflow-y-auto text-xs bg-slate-50 dark:bg-slate-800 p-3 rounded-xl font-mono text-slate-600 dark:text-slate-400"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 4: REVIEWS EXPLORER -->
+      <section id="pageReviews" class="p-6 space-y-6 hidden">
+        <!-- Filter Bar -->
+        <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+            <!-- Search Text -->
+            <div class="md:col-span-2">
+              <input type="text" id="revSearchInput" placeholder="Search original or transliterated review..." class="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs focus:ring-1 focus:ring-brand-500">
+            </div>
+            <!-- Sentiment -->
+            <div>
+              <select id="revSentimentFilter" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-medium">
+                <option value="all">All Sentiments</option>
+                <option value="Positive">Positive</option>
+                <option value="Negative">Negative</option>
+                <option value="Neutral">Neutral</option>
+              </select>
+            </div>
+            <!-- Language -->
+            <div>
+              <select id="revLangFilter" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-medium">
+                <option value="all">All Languages</option>
+                <option value="Telugu">Telugu</option>
+                <option value="Tamil">Tamil</option>
+                <option value="Kannada">Kannada</option>
+                <option value="Hindi">Hindi</option>
+                <option value="Malayalam">Malayalam</option>
+                <option value="Bengali">Bengali</option>
+                <option value="Marathi">Marathi</option>
+                <option value="Gujarati">Gujarati</option>
+                <option value="English">English</option>
+              </select>
+            </div>
+            <!-- Product -->
+            <div>
+              <select id="revProductFilter" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-medium">
+                <option value="">All Products</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reviews Table -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 dark:bg-slate-800/60 uppercase font-semibold text-slate-500 border-b border-slate-100 dark:border-slate-800">
+                <tr>
+                  <th class="py-3.5 px-4 w-12">#</th>
+                  <th class="py-3.5 px-4 w-44">Product</th>
+                  <th class="py-3.5 px-4">Review Text & Transliteration</th>
+                  <th class="py-3.5 px-4 w-28">Language</th>
+                  <th class="py-3.5 px-4 w-28">Sentiment</th>
+                  <th class="py-3.5 px-4 w-32">Aspects</th>
+                  <th class="py-3.5 px-4 w-24">Date</th>
+                  <th class="py-3.5 px-4 w-24 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="reviewsTableBody" class="divide-y divide-slate-100 dark:divide-slate-800">
+                <!-- Dynamically loaded -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination Bar -->
+          <div class="px-6 py-4 bg-slate-50/50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
+            <div id="reviewsCountDisplay">Showing 0 of 0 reviews</div>
+            <div class="flex items-center gap-2">
+              <button id="prevPageBtn" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40">Previous</button>
+              <span id="pageNumberDisplay" class="font-semibold">Page 1 of 1</span>
+              <button id="nextPageBtn" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40">Next</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 5: DEEP INSIGHTS -->
+      <section id="pageInsights" class="p-6 space-y-6 hidden">
+        <!-- Automated Plain-Language Insights -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-xl">💡</span>
+              <h3 class="text-base font-bold brand-font">Automated Plain-Language Strategic Insights</h3>
+            </div>
+            <span class="text-xs text-slate-400">Generated dynamically from full dataset</span>
+          </div>
+          <div id="insightsListContainer" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <!-- Dynamically populated insight cards -->
+          </div>
+        </div>
+
+        <!-- Keywords Frequency Chips -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h3 class="text-base font-bold brand-font">Language Keywords & Sentiment Signals</h3>
+              <p class="text-xs text-slate-500 mt-0.5">Top recurring positive vs negative keywords with stopword filtering.</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <label class="text-xs font-semibold text-slate-500">Language:</label>
+              <select id="keywordsLangSelect" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-medium">
+                <option value="English">English</option>
+                <option value="Telugu">Telugu</option>
+                <option value="Tamil">Tamil</option>
+                <option value="Hindi">Hindi</option>
+                <option value="Kannada">Kannada</option>
+                <option value="Malayalam">Malayalam</option>
+                <option value="Bengali">Bengali</option>
+                <option value="Marathi">Marathi</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+            <!-- Positive Keywords -->
+            <div class="bg-emerald-50/50 dark:bg-emerald-950/20 p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/40">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 mb-3 flex items-center gap-1.5">
+                <span>👍 Top Positive Signal Words</span>
+              </h4>
+              <div id="posKeywordsContainer" class="flex flex-wrap gap-2">
+                <!-- Dynamically injected -->
+              </div>
+            </div>
+
+            <!-- Negative Keywords -->
+            <div class="bg-rose-50/50 dark:bg-rose-950/20 p-4 rounded-xl border border-rose-100 dark:border-rose-900/40">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400 mb-3 flex items-center gap-1.5">
+                <span>👎 Top Negative Signal Words</span>
+              </h4>
+              <div id="negKeywordsContainer" class="flex flex-wrap gap-2">
+                <!-- Dynamically injected -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Low Confidence Reviews Queue -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-base font-bold brand-font">Human-in-the-Loop Review Queue</h3>
+              <p class="text-xs text-slate-500 mt-0.5">Reviews where model confidence is below 60% — correct labels directly to fine-tune future models.</p>
+            </div>
+            <span id="lowConfCountBadge" class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-400">0 Pending</span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 dark:bg-slate-800/60 uppercase font-semibold text-slate-500 border-b border-slate-100 dark:border-slate-800">
+                <tr>
+                  <th class="py-3 px-4">Review Text</th>
+                  <th class="py-3 px-4">Language</th>
+                  <th class="py-3 px-4">Predicted Label</th>
+                  <th class="py-3 px-4">Confidence</th>
+                  <th class="py-3 px-4 text-right">Correct & Approve</th>
+                </tr>
+              </thead>
+              <tbody id="lowConfTableBody" class="divide-y divide-slate-100 dark:divide-slate-800">
+                <!-- Dynamically loaded -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 6: REPORTS & EXPORT -->
+      <section id="pageReports" class="p-6 space-y-6 hidden">
+        <div class="max-w-4xl mx-auto space-y-6">
+          <div>
+            <h3 class="text-lg font-bold brand-font">Executive Reports & Data Export</h3>
+            <p class="text-xs text-slate-500 mt-0.5">Generate boardroom-ready executive PDF reports or export cleaned sentiment datasets to CSV.</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- PDF Report Card -->
+            <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between hover-card">
+              <div class="space-y-4">
+                <div class="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950 text-brand-600 flex items-center justify-center text-2xl">
+                  📑
+                </div>
+                <div>
+                  <h4 class="text-base font-bold">Executive PDF Summary Report</h4>
+                  <p class="text-xs text-slate-500 mt-1">Generates an automated, professional multi-page ReportLab PDF report containing KPI cards, sentiment distribution by language, aspect matrices, and actionable business insights.</p>
+                </div>
+                <div class="space-y-2 pt-2">
+                  <div class="flex items-center gap-2">
+                    <label class="text-xs font-semibold text-slate-500 w-20">Language:</label>
+                    <select id="reportPdfLang" class="flex-1 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs">
+                      <option value="all">All Languages</option>
+                      <option value="Telugu">Telugu</option>
+                      <option value="Tamil">Tamil</option>
+                      <option value="Hindi">Hindi</option>
+                      <option value="Kannada">Kannada</option>
+                      <option value="Bengali">Bengali</option>
+                      <option value="Malayalam">Malayalam</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="pt-6">
+                <button type="button" id="downloadPdfBtn" class="w-full py-2.5 px-4 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs shadow-md shadow-brand-500/20 transition-all flex items-center justify-center gap-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                  <span>Download Executive PDF Report</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- CSV Export Card -->
+            <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between hover-card">
+              <div class="space-y-4">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950 text-emerald-600 flex items-center justify-center text-2xl">
+                  📊
+                </div>
+                <div>
+                  <h4 class="text-base font-bold">Full Dataset CSV Export</h4>
+                  <p class="text-xs text-slate-500 mt-1">Export all enriched customer reviews including original regional text, detected language & script, transliterated native characters, model confidence, class probabilities, and extracted aspects.</p>
+                </div>
+                <div class="space-y-2 pt-2">
+                  <div class="flex items-center gap-2">
+                    <label class="text-xs font-semibold text-slate-500 w-20">Sentiment:</label>
+                    <select id="reportCsvSentiment" class="flex-1 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs">
+                      <option value="all">All Sentiments</option>
+                      <option value="Positive">Positive Only</option>
+                      <option value="Negative">Negative Only</option>
+                      <option value="Neutral">Neutral Only</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="pt-6">
+                <button type="button" id="downloadCsvBtn" class="w-full py-2.5 px-4 rounded-xl border border-emerald-600 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 font-semibold text-xs transition-all flex items-center justify-center gap-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                  <span>Export Dataset as CSV</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- LABEL CORRECTION MODAL -->
+  <div id="correctionModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-md w-full border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between">
+        <h4 class="text-base font-bold brand-font">Correct Sentiment Label</h4>
+        <button id="closeModalBtn" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">✕</button>
+      </div>
+      <p class="text-xs text-slate-500">Provide human feedback to improve subsequent model fine-tuning:</p>
+      
+      <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-xs text-slate-700 dark:text-slate-300 italic" id="modalReviewSnippet"></div>
+
+      <div>
+        <label class="block text-xs font-semibold uppercase text-slate-400 mb-1.5">New Sentiment Label</label>
+        <select id="modalSentimentSelect" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-medium">
+          <option value="Positive">Positive</option>
+          <option value="Negative">Negative</option>
+          <option value="Neutral">Neutral</option>
+        </select>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button id="cancelModalBtn" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold">Cancel</button>
+        <button id="saveModalBtn" class="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold shadow-md shadow-brand-500/20">Save Correction</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
